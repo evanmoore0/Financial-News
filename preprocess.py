@@ -41,16 +41,17 @@ import nltk
 nltk.download('punkt')
 from nltk.corpus import stopwords
 
-
+# Get Data
 df = pd.read_csv('all-data.csv',delimiter=',',encoding='latin-1')
 
+# Label columns
 df = df.rename(columns={'neutral':'sentiment','According to Gran , the company has no plans to move all production to Russia , although that is where the company is growing .':'Message'})
 
-print(df.shape)
-
+# Set index
 df.index = range(4845)
 df['Message'].apply(lambda x: len(x.split(' '))).sum()
 
+# Get values to plot the distribution of the data
 cnt_pro = df['sentiment'].value_counts()
 
 # plot cnt_pro
@@ -64,17 +65,9 @@ plt.show();
 sentiment  = {'positive': 0,'neutral': 1,'negative':2} 
 
 df.sentiment = [sentiment[item] for item in df.sentiment] 
-print(df)
 
-def print_message(index):
-    example = df[df.index == index][['Message', 'sentiment']].values[0]
-    if len(example) > 0:
-        print(example[0])
-        print('Message:', example[1])
-print_message(12)
 
-print_message(0)
-
+# Remove symbols
 def cleanText(text):
     text = BeautifulSoup(text, "lxml").text
     text = re.sub(r'\|\|\|', r' ', text) 
@@ -82,13 +75,14 @@ def cleanText(text):
     text = text.lower()
     text = text.replace('x', '')
     return text
-df['Message'] = df['Message'].apply(cleanText)
 
 
 df['Message'] = df['Message'].apply(cleanText)
+
+
 train, test = train_test_split(df, test_size=0.000001 , random_state=42)
 
-
+# To
 def tokenize_text(text):
     tokens = []
     for sent in nltk.sent_tokenize(text):
@@ -135,99 +129,8 @@ embedding_matrix = np.zeros((len(d2v_model.wv)+ 1, 20))
 
 for i, vec in enumerate(d2v_model.dv.vectors):
     while i in vec <= 1000:
-    #print(i)
-    #print(model.docvecs)
           embedding_matrix[i]=vec
-    #print(vec)
-    #print(vec[i])
 
-
-print("ENd")
-print(len(d2v_model.wv)+1)
-
-# init layer
-model = Sequential([
-
-    # InputLayer(MAX_SEQUENCE_LENGTH),
-    
-    Embedding(len(d2v_model.wv)+1,20,input_length=X.shape[1],weights=[embedding_matrix],trainable=True),
-    # SpatialDropout1D(0.2),
-    # Conv1D(100, kernel_size=3, strides = 2, padding='same', activation='relu'),
-    MaxPooling1D(pool_size=2),
-    Bidirectional(LSTM(100)),
-    Dense(3, activation='sigmoid')
-
-
-])
-
-# emmbed word vectors
-# model.add(Embedding(len(d2v_model.wv)+1,20,input_length=X.shape[1],weights=[embedding_matrix],trainable=True))
-
-# learn the correlations
-# def split_input(sequence):
-#      return sequence[:-1], tf.reshape(sequence[1:], (-1,1))
-# model.add(LSTM(50,return_sequences=False))
-# model.add(Dense(3,activation="softmax"))
-
-# output model skeleton
-model.summary()
-model.compile(optimizer="adam",loss="binary_crossentropy",metrics=['acc'])
 
 Y = pd.get_dummies(df['sentiment']).values
-X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.30, random_state = 42)
-print(X_train.shape,Y_train.shape)
-print(X_test.shape,Y_test.shape)
-
-
-
-batch_size = 32
-history=model.fit(X_train, Y_train, epochs =20, batch_size=batch_size, verbose = 2)
-
-plt.plot(history.history['acc'])
-plt.title('model accuracy')
-plt.ylabel('acc')
-plt.xlabel('epochs')
-plt.legend(['train', 'test'], loc='upper left')
-plt.show()
-plt.savefig('model_accuracy.png')
-
-# summarize history for loss
-plt.plot(history.history['loss'])
-#plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epochs')
-plt.legend(['train', 'test'], loc='upper left')
-plt.show()
-plt.savefig('model_loss.png')
-
-
-# evaluate the model
-_, train_acc = model.evaluate(X_train, Y_train, verbose=2)
-_, test_acc = model.evaluate(X_test, Y_test, verbose=2)
-print('Train: %.3f, Test: %.4f' % (train_acc, test_acc))
-
-
-
-# predict probabilities for test set
-yhat_probs = model.predict(X_test, verbose=0)
-# predict crisp classes for test set
-# yhat_classes = model.predict_classes(X_test, verbose=0)
-predict_x=model.predict(X_test) 
-yhat_classes=np.argmax(predict_x,axis=1)
-# reduce to 1d array
-#yhat_probs = yhat_probs[:, 0]
-#yhat_classes = yhat_classes[:, 1
-rounded_labels=np.argmax(Y_test, axis=1)
-
-
-cm = confusion_matrix(rounded_labels, yhat_classes)
-
-
-lstm_val = confusion_matrix(rounded_labels, yhat_classes)
-_, ax = plt.subplots(figsize=(5,5))
-sns.heatmap(lstm_val, annot=True, linewidth=0.7, linecolor='cyan', fmt='g', ax=ax, cmap="BuPu")
-plt.title('LSTM Classification Confusion Matrix')
-plt.xlabel('Y predict')
-plt.ylabel('Y test')
-plt.show()
+X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.15, random_state = 42)
